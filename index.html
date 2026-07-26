@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบฟอร์มสมัครงานออนไลน์ (Firebase)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .tabs { display: flex; background: #f5f5f5; border-bottom: 2px solid #e0e0e0; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: 600; color: #666; transition: all 0.3s; border: none; background: transparent; font-size: 15px; }
+        .tab.active { background: white; color: #667eea; border-bottom: 3px solid #667eea; }
+        .tab:hover:not(.active) { background: #e8e8e8; }
+        .content { padding: 30px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-section { margin-bottom: 25px; }
+        .section-title { font-size: 18px; color: #333; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #667eea; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        label { display: block; margin-bottom: 6px; color: #555; font-weight: 500; font-size: 14px; }
+        label .required { color: #e74c3c; margin-left: 3px; }
+        input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.3s; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        textarea { resize: vertical; min-height: 80px; }
+        .radio-group { display: flex; gap: 20px; padding: 8px 0; }
+        .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; margin-bottom: 0; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn { padding: 12px 30px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; flex: 1; min-width: 120px; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-secondary { background: #f0f0f0; color: #555; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-danger { background: #e74c3c; color: white; padding: 6px 12px; font-size: 13px; flex: 0; min-width: auto; }
+        .btn-view { background: #3498db; color: white; padding: 6px 12px; font-size: 13px; flex: 0; min-width: auto; }
+        .applicants-list { display: flex; flex-direction: column; gap: 15px; }
+        .applicant-card { background: #f9f9f9; border-radius: 10px; padding: 20px; border-left: 4px solid #667eea; }
+        .applicant-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .applicant-name { font-size: 18px; font-weight: 600; color: #333; }
+        .applicant-position { background: #667eea; color: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; }
+        .applicant-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 14px; color: #666; margin-bottom: 12px; }
+        .applicant-info strong { color: #333; }
+        .applicant-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state-icon { font-size: 60px; margin-bottom: 15px; opacity: 0.3; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 15px; max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 30px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eee; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .detail-row { margin-bottom: 12px; }
+        .detail-label { font-weight: 600; color: #667eea; margin-bottom: 4px; font-size: 13px; }
+        .detail-value { color: #333; font-size: 14px; line-height: 1.6; word-break: break-word; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .stat-number { font-size: 32px; font-weight: 700; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        .loading { text-align: center; padding: 20px; color: #667eea; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 แบบฟอร์มสมัครงานออนไลน์</h1>
+            <p>ข้อมูลจะถูกบันทึกแบบ Real-time บน Cloud</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('form')">📋 กรอกใบสมัคร</button>
+            <button class="tab" onclick="switchTab('list')">📊 รายการผู้สมัคร</button>
+        </div>
+
+        <div class="content">
+            <div id="formTab" class="tab-content active">
+                <div id="alert" class="alert"></div>
+                <form id="applicationForm">
+                    <input type="hidden" id="editId">
+                    
+                    <div class="form-section">
+                        <h2 class="section-title">👤 ข้อมูลส่วนตัว</h2>
+                        <div class="form-grid">
+                            <div class="form-group"><label>ชื่อ <span class="required">*</span></label><input type="text" id="firstName" required></div>
+                            <div class="form-group"><label>นามสกุล <span class="required">*</span></label><input type="text" id="lastName" required></div>
+                            <div class="form-group"><label>วันเกิด</label><input type="date" id="birthDate"></div>
+                            <div class="form-group">
+                                <label>เพศ</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="gender" value="ชาย"> ชาย</label>
+                                    <label><input type="radio" name="gender" value="หญิง"> หญิง</label>
+                                    <label><input type="radio" name="gender" value="อื่นๆ"> อื่นๆ</label>
+                                </div>
+                            </div>
+                            <div class="form-group"><label>เบอร์โทรศัพท์ <span class="required">*</span></label><input type="tel" id="phone" required></div>
+                            <div class="form-group"><label>อีเมล <span class="required">*</span></label><input type="email" id="email" required></div>
+                            <div class="form-group full-width"><label>ที่อยู่</label><textarea id="address"></textarea></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2 class="section-title">🎓 ข้อมูลการศึกษา</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>ระดับการศึกษาสูงสุด</label>
+                                <select id="education">
+                                    <option value="">-- เลือก --</option>
+                                    <option value="มัธยมศึกษา">มัธยมศึกษา</option>
+                                    <option value="ปวช./ปวส.">ปวช./ปวส.</option>
+                                    <option value="ปริญญาตรี">ปริญญาตรี</option>
+                                    <option value="ปริญญาโท">ปริญญาโท</option>
+                                    <option value="ปริญญาเอก">ปริญญาเอก</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>สถาบันการศึกษา</label><input type="text" id="institution"></div>
+                            <div class="form-group"><label>สาขาวิชา</label><input type="text" id="major"></div>
+                            <div class="form-group"><label>เกรดเฉลี่ย (GPA)</label><input type="number" id="gpa" step="0.01" min="0" max="4"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2 class="section-title">💼 ประสบการณ์ทำงาน</h2>
+                        <div class="form-grid">
+                            <div class="form-group"><label>ตำแหน่งงานล่าสุด</label><input type="text" id="lastPosition"></div>
+                            <div class="form-group"><label>ชื่อบริษัท</label><input type="text" id="company"></div>
+                            <div class="form-group"><label>ระยะเวลาทำงาน (ปี)</label><input type="number" id="experience" min="0" step="0.5"></div>
+                            <div class="form-group"><label>เงินเดือนที่ต้องการ (บาท)</label><input type="number" id="expectedSalary" min="0"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2 class="section-title">🎯 ตำแหน่งที่สมัคร</h2>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>ตำแหน่งที่สมัคร <span class="required">*</span></label>
+                                <select id="position" required>
+                                    <option value="">-- เลือกตำแหน่ง --</option>
+                                    <option value="โปรแกรมเมอร์">โปรแกรมเมอร์</option>
+                                    <option value="นักพัฒนาเว็บ">นักพัฒนาเว็บ</option>
+                                    <option value="นักวิเคราะห์ข้อมูล">นักวิเคราะห์ข้อมูล</option>
+                                    <option value="นักออกแบบกราฟิก">นักออกแบบกราฟิก</option>
+                                    <option value="เจ้าหน้าที่การตลาด">เจ้าหน้าที่การตลาด</option>
+                                    <option value="พนักงานขาย">พนักงานขาย</option>
+                                    <option value="อื่นๆ">อื่นๆ</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width"><label>ทักษะ/ความสามารถพิเศษ</label><textarea id="skills"></textarea></div>
+                            <div class="form-group full-width"><label>แนะนำตัวเองสั้นๆ</label><textarea id="aboutMe"></textarea></div>
+                            <div class="form-group"><label>วันที่สามารถเริ่มงานได้</label><input type="date" id="startDate"></div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">💾 บันทึกใบสมัคร</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 ล้างข้อมูล</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="listTab" class="tab-content">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">ผู้สมัครทั้งหมด</div>
+                    </div>
+                </div>
+                <div id="applicantsList" class="applicants-list">
+                    <div class="loading">กำลังโหลดข้อมูลจาก Cloud...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 รายละเอียดผู้สมัคร</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Version 10 Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ✅ Config ของคุณถูกใส่ไว้ที่นี่แล้ว
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhnL9ZoW5aNZRe-Jx7mWd91Lw2MkAZExU",
+            authDomain: "my-web-app-f047e.firebaseapp.com",
+            databaseURL: "https://my-web-app-f047e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "my-web-app-f047e",
+            storageBucket: "my-web-app-f047e.firebasestorage.app",
+            messagingSenderId: "541149786183",
+            appId: "1:541149786183:web:fa2d807b08bfcefb7f8162",
+            measurementId: "G-18DL6ZLLLX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const applicantsCollection = collection(db, "applicants");
+
+        // Real-time listener for applicants list
+        const q = query(applicantsCollection, orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const applicants = [];
+            snapshot.forEach((doc) => {
+                applicants.push({ id: doc.id, ...doc.data() });
+            });
+            renderApplicants(applicants);
+        }, (error) => {
+            console.error("Error loading data:", error);
+            document.getElementById('applicantsList').innerHTML = `<div class="alert alert-error">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${error.message}<br>โปรดตรวจสอบว่าเปิด Firestore Database และตั้งค่า Rules ถูกต้อง</div>`;
+        });
+
+        // Form Submission
+        document.getElementById('applicationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'กำลังบันทึก...';
+
+            const editId = document.getElementById('editId').value;
+            const genderRadio = document.querySelector('input[name="gender"]:checked');
+
+            const applicantData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                birthDate: document.getElementById('birthDate').value,
+                gender: genderRadio ? genderRadio.value : '',
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value,
+                education: document.getElementById('education').value,
+                institution: document.getElementById('institution').value,
+                major: document.getElementById('major').value,
+                gpa: document.getElementById('gpa').value,
+                lastPosition: document.getElementById('lastPosition').value,
+                company: document.getElementById('company').value,
+                experience: document.getElementById('experience').value,
+                expectedSalary: document.getElementById('expectedSalary').value,
+                position: document.getElementById('position').value,
+                skills: document.getElementById('skills').value,
+                aboutMe: document.getElementById('aboutMe').value,
+                startDate: document.getElementById('startDate').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (editId) {
+                    await setDoc(doc(db, "applicants", editId), applicantData, { merge: true });
+                    window.showAlert('✅ แก้ไขข้อมูลสำเร็จ!', 'success');
+                } else {
+                    applicantData.createdAt = new Date().toISOString();
+                    await addDoc(applicantsCollection, applicantData);
+                    window.showAlert('✅ บันทึกใบสมัครสำเร็จ!', 'success');
+                }
+                resetForm();
+            } catch (error) {
+                console.error("Error saving data: ", error);
+                window.showAlert('❌ เกิดข้อผิดพลาด: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 บันทึกใบสมัคร';
+            }
+        });
+
+        // Render List
+        function renderApplicants(applicants) {
+            const listContainer = document.getElementById('applicantsList');
+            document.getElementById('totalCount').textContent = applicants.length;
+
+            if (applicants.length === 0) {
+                listContainer
