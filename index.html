@@ -8,13 +8,18 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; position: relative; }
         .header h1 { font-size: 28px; margin-bottom: 8px; }
         .header p { opacity: 0.9; font-size: 14px; }
+        .admin-badge { position: absolute; top: 15px; right: 15px; background: #28a745; color: white; padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; display: none; }
+        .admin-badge.show { display: block; }
+        .login-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.3s; }
+        .login-btn:hover { background: rgba(255,255,255,0.3); }
         .tabs { display: flex; background: #f5f5f5; border-bottom: 2px solid #e0e0e0; }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: 600; color: #666; transition: all 0.3s; border: none; background: transparent; font-size: 15px; }
         .tab.active { background: white; color: #667eea; border-bottom: 3px solid #667eea; }
         .tab:hover:not(.active) { background: #e8e8e8; }
+        .tab.hidden { display: none; }
         .content { padding: 30px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
@@ -54,7 +59,7 @@
         .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
         .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 15px; max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 30px; }
+        .modal-content { background: white; border-radius: 15px; max-width: 500px; width: 100%; padding: 30px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eee; }
         .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
         .detail-row { margin-bottom: 12px; }
@@ -65,6 +70,8 @@
         .stat-number { font-size: 32px; font-weight: 700; margin-bottom: 5px; }
         .stat-label { font-size: 13px; opacity: 0.9; }
         .loading { text-align: center; padding: 20px; color: #667eea; font-weight: 600; }
+        .login-form { display: flex; flex-direction: column; gap: 15px; }
+        .logout-btn { background: #dc3545; color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; border: none; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -72,11 +79,13 @@
         <div class="header">
             <h1>📝 แบบฟอร์มสมัครงานออนไลน์</h1>
             <p>ข้อมูลจะถูกบันทึกแบบ Real-time บน Cloud</p>
+            <button class="login-btn" id="loginBtn" onclick="showLoginModal()">🔐 ล็อกอิน Admin</button>
+            <div class="admin-badge" id="adminBadge">✅ Admin Mode</div>
         </div>
 
         <div class="tabs">
             <button class="tab active" onclick="switchTab('form')">📋 กรอกใบสมัคร</button>
-            <button class="tab" onclick="switchTab('list')">📊 รายการผู้สมัคร</button>
+            <button class="tab hidden" id="listTabBtn" onclick="switchTab('list')">📊 รายการผู้สมัคร</button>
         </div>
 
         <div class="content">
@@ -171,6 +180,9 @@
                         <div class="stat-label">ผู้สมัครทั้งหมด</div>
                     </div>
                 </div>
+                <div style="text-align: right; margin-bottom: 15px;">
+                    <button class="logout-btn" onclick="logout()">🚪 ออกจากระบบ</button>
+                </div>
                 <div id="applicantsList" class="applicants-list">
                     <div class="loading">กำลังโหลดข้อมูลจาก Cloud...</div>
                 </div>
@@ -178,8 +190,31 @@
         </div>
     </div>
 
-    <div id="detailModal" class="modal">
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
         <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 ล็อกอิน Admin</h2>
+                <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div>
+                    <label>อีเมล</label>
+                    <input type="email" id="loginEmail" required placeholder="admin@yourcompany.com">
+                </div>
+                <div>
+                    <label>รหัสผ่าน</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <div id="loginAlert" class="alert"></div>
+                <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h2>📋 รายละเอียดผู้สมัคร</h2>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -188,13 +223,14 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Version 10 Modular) -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } 
         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        // ✅ Firebase Config ของคุณ (ใส่ไว้แล้ว)
         const firebaseConfig = {
             apiKey: "AIzaSyBhnL9ZoW5aNZRe-Jx7mWd91Lw2MkAZExU",
             authDomain: "my-web-app-f047e.firebaseapp.com",
@@ -208,19 +244,65 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
         const applicantsCollection = collection(db, "applicants");
 
-        // Real-time listener for applicants list
-        const q = query(applicantsCollection, orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
-            const applicants = [];
-            snapshot.forEach((doc) => {
-                applicants.push({ id: doc.id, ...doc.data() });
+        let isAdmin = false;
+        let unsubscribe = null;
+
+        // Check auth state
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                isAdmin = true;
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('adminBadge').classList.add('show');
+                document.getElementById('listTabBtn').classList.remove('hidden');
+                startListening();
+            } else {
+                isAdmin = false;
+                document.getElementById('loginBtn').style.display = 'block';
+                document.getElementById('adminBadge').classList.remove('show');
+                document.getElementById('listTabBtn').classList.add('hidden');
+                if (unsubscribe) {
+                    unsubscribe();
+                    unsubscribe = null;
+                }
+            }
+        });
+
+        // Start listening to Firestore (only for admin)
+        function startListening() {
+            if (unsubscribe) return;
+            
+            const q = query(applicantsCollection, orderBy("createdAt", "desc"));
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const applicants = [];
+                snapshot.forEach((doc) => {
+                    applicants.push({ id: doc.id, ...doc.data() });
+                });
+                renderApplicants(applicants);
+            }, (error) => {
+                console.error("Error loading data:", error);
+                document.getElementById('applicantsList').innerHTML = `<div class="alert alert-error">เกิดข้อผิดพลาด: ${error.message}</div>`;
             });
-            renderApplicants(applicants);
-        }, (error) => {
-            console.error("Error loading data:", error);
-            document.getElementById('applicantsList').innerHTML = `<div class="alert alert-error">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${error.message}<br>โปรดตรวจสอบว่าเปิด Firestore Database และตั้งค่า Rules ถูกต้อง</div>`;
+        }
+
+        // Login form
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginAlert = document.getElementById('loginAlert');
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                closeLoginModal();
+                showAlert('✅ เข้าสู่ระบบสำเร็จ!', 'success');
+            } catch (error) {
+                loginAlert.textContent = '❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                loginAlert.className = 'alert alert-error';
+                loginAlert.style.display = 'block';
+            }
         });
 
         // Form Submission
@@ -281,7 +363,7 @@
             document.getElementById('totalCount').textContent = applicants.length;
 
             if (applicants.length === 0) {
-                listContainer.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><h3>ยังไม่มีข้อมูลผู้สมัคร</h3><p>เริ่มกรอกใบสมัครเพื่อเพิ่มข้อมูล</p></div>`;
+                listContainer.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><h3>ยังไม่มีข้อมูลผู้สมัคร</h3></div>`;
                 return;
             }
 
@@ -306,7 +388,7 @@
             `).join('');
         }
 
-        // Global functions for HTML onclick
+        // Global functions
         window.viewDetails = async function(id) {
             try {
                 const docRef = doc(db, "applicants", id);
@@ -384,7 +466,7 @@
         };
 
         window.deleteApplicant = async function(id) {
-            if (!confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูลผู้สมัครนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
+            if (!confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูลผู้สมัครนี้?')) return;
             try {
                 await deleteDoc(doc(db, "applicants", id));
                 window.showAlert('🗑️ ลบข้อมูลสำเร็จ!', 'success');
@@ -400,7 +482,7 @@
             if (tab === 'form') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('formTab').classList.add('active');
-            } else {
+            } else if (tab === 'list' && isAdmin) {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('listTab').classList.add('active');
             }
@@ -413,6 +495,22 @@
 
         window.closeModal = function() {
             document.getElementById('detailModal').classList.remove('active');
+        };
+
+        window.showLoginModal = function() {
+            document.getElementById('loginModal').classList.add('active');
+        };
+
+        window.closeLoginModal = function() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('loginAlert').style.display = 'none';
+        };
+
+        window.logout = async function() {
+            if (!confirm('ต้องการออกจากระบบหรือไม่?')) return;
+            await signOut(auth);
+            switchTab('form');
+            showAlert('👋 ออกจากระบบแล้ว', 'success');
         };
 
         window.showAlert = function(message, type) {
